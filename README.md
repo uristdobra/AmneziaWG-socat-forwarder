@@ -33,7 +33,7 @@ RU-сервер принимает UDP-трафик от клиента и пр�
 ### Способ 1: Установка одной строкой (рекомендуется)
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/uristdobra/AmneziaWG-socat-forwarder/main/install.sh) установить
+bash <(curl -fsSL https://raw.githubusercontent.com/uristdobra/AmneziaWG-socat-forwarder/main/install.sh)
 ```
 
 ### Способ 2: Скачать и запустить
