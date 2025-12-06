@@ -3,6 +3,7 @@
 SERVICE_NAME="wg-forward"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 SCRIPT_DIR="/opt/amneziawg-forwarder"
+GITHUB_RAW="https://raw.githubusercontent.com/uristdobra/AmneziaWG-socat-forwarder/main/install.sh"
 
 red='\033[0;31m'
 green='\033[0;32m'
@@ -19,7 +20,7 @@ check_root() {
 
 install_base() {
     check_root
-    
+
     echo -e "${blue}=== Создание каскадного VPN AmneziaWG ===${plain}"
     echo
     echo -e "${yellow}📦 Шаг 1. Обновление пакетов и установка утилит...${plain}"
@@ -73,19 +74,36 @@ EOFSERVICE
         echo -e "${green}✅ Служба успешно запущена!${plain}"
     else
         echo -e "${red}⚠️  Ошибка при запуске службы. Проверьте:${plain}"
-        echo -e "${yellow}systemctl status wg-forward.service${plain}"
+        echo -e "${yellow}systemctl status ${SERVICE_NAME}.service${plain}"
         exit 1
     fi
 
     echo
     echo -e "${yellow}📄 Шаг 5. Установка команды 'menu'...${plain}"
     mkdir -p "${SCRIPT_DIR}"
-    cp "$0" "${SCRIPT_DIR}/install.sh"
+
+    # Попытка корректно получить путь до текущего файла
+    SRC="${BASH_SOURCE[0]}"
+
+    if [[ -f "$SRC" ]]; then
+        cp -- "$SRC" "${SCRIPT_DIR}/install.sh"
+    else
+        # Если запущено как curl | bash — скачиваем оригинал с GitHub
+        echo -e "${yellow}⚠️  Локальный файл не определён, скачиваю оригинал с GitHub...${plain}"
+        mkdir -p "${SCRIPT_DIR}"
+        if ! curl -fsSL "${GITHUB_RAW}" -o "${SCRIPT_DIR}/install.sh"; then
+            echo -e "${red}❌ Не удалось скачать install.sh с GitHub. Установка не завершена.${plain}"
+            exit 1
+        fi
+    fi
+
     chmod +x "${SCRIPT_DIR}/install.sh"
 
+    # Устанавливаем простой wrapper без sudo (чтобы не менять контекст запуска)
     cat > "/usr/local/bin/menu" <<'EOFMENU'
 #!/bin/bash
-sudo /opt/amneziawg-forwarder/install.sh menu
+# wrapper for AmneziaWG forwarder menu
+exec /opt/amneziawg-forwarder/install.sh menu
 EOFMENU
     chmod +x "/usr/local/bin/menu"
 
@@ -177,7 +195,7 @@ show_menu() {
         0) echo -e "${green}👋 До свидания!${plain}"; exit 0 ;;
         *) echo -e "${red}❌ Неверный выбор (введите 0-6).${plain}" ;;
     esac
-    
+
     echo
     read -rp "Нажмите Enter для продолжения..." _
 }
