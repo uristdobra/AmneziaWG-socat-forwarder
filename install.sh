@@ -16,8 +16,8 @@ plain='\033[0m'
 
 check_root() {
     if [[ $EUID -ne 0 ]]; then
-        echo -e "${red}❌ Запустите скрипт от root (через sudo).${plain}"
-        exit 1
+        # Если не root, перезапустить с sudo
+        exec sudo "$0" "$@"
     fi
 }
 
@@ -33,12 +33,15 @@ install_self() {
 
     cat > "/usr/local/bin/menu" <<'EOF'
 #!/usr/bin/env bash
-exec sudo /opt/amneziawg-forwarder/install.sh menu
+if [[ $EUID -ne 0 ]]; then
+    exec sudo /opt/amneziawg-forwarder/install.sh menu
+fi
+exec /opt/amneziawg-forwarder/install.sh menu
 EOF
     chmod +x "/usr/local/bin/menu"
 
     echo -e "${green}✅ Глобальная команда 'menu' установлена!${plain}"
-    echo -e "Теперь можно вызывать из любой папки: ${yellow}menu${plain}"
+    echo -e "Используйте: ${yellow}menu${plain}"
 }
 
 uninstall_self() {
@@ -192,16 +195,17 @@ show_menu() {
     press_enter
 }
 
+# Проверка прав и перезапуск с sudo если нужно
+check_root
+
 case "${1}" in
     "menu")
-        check_root
         while true; do
             show_menu
         done
         ;;
     *)
         # При первом запуске без аргументов - сразу установка
-        check_root
         install_forwarder
         install_self
         ;;
