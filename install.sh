@@ -80,13 +80,17 @@ EOFSERVICE
     echo
     echo -e "${yellow}📄 Шаг 5. Установка команды 'menu'...${plain}"
     mkdir -p "${SCRIPT_DIR}"
-    cp "$0" "${SCRIPT_DIR}/menu.sh"
-    chmod +x "${SCRIPT_DIR}/menu.sh"
+    cp "$0" "${SCRIPT_DIR}/install.sh"
+    chmod +x "${SCRIPT_DIR}/install.sh"
 
-    if [[ ! -f "/usr/local/bin/menu" ]]; then
-        ln -s "${SCRIPT_DIR}/menu.sh" /usr/local/bin/menu
-        chmod +x /usr/local/bin/menu
-    fi
+    cat > "/usr/local/bin/menu" <<'EOFMENU'
+#!/usr/bin/env bash
+if [[ $EUID -ne 0 ]]; then
+    exec sudo /opt/amneziawg-forwarder/install.sh menu
+fi
+exec /opt/amneziawg-forwarder/install.sh menu
+EOFMENU
+    chmod +x "/usr/local/bin/menu"
 
     echo -e "${green}✅ Команда 'menu' установлена!${plain}"
     echo
@@ -96,10 +100,10 @@ EOFSERVICE
     echo
     echo -e "${yellow}📋 Следующие шаги:${plain}"
     echo -e "1. Откройте конфиг AmneziaWG на ${yellow}клиенте${plain}"
-    echo -e "2. Замените IP в ${yellow}Endpoint${plain} на IP {{yellow}этого RU-сервера${plain}"
-    echo -e "3. Оставьте {{yellow}тот же порт{{plain}: {{green}${REMOTE_PORT}{{plain}"
+    echo -e "2. Замените IP в ${yellow}Endpoint${plain} на IP ${yellow}этого RU-сервера${plain}"
+    echo -e "3. Оставьте ${yellow}тот же порт${plain}: ${green}${REMOTE_PORT}${plain}"
     echo
-    echo -e "{{yellow}💡 Используйте команду для управления:{{plain}} {{green}menu{{plain}}"
+    echo -e "${yellow}💡 Используйте команду для управления:${plain} ${green}menu${plain}"
 }
 
 start_service() {
@@ -184,29 +188,14 @@ show_menu() {
 main() {
     case "$1" in
         menu)
-            show_menu
-            ;;
-        install)
-            install_base
-            ;;
-        start)
-            start_service
-            ;;
-        stop)
-            stop_service
-            ;;
-        restart)
-            restart_service
-            ;;
-        status)
-            status_service
-            ;;
-        uninstall)
-            uninstall_service
+            check_root
+            while true; do
+                show_menu
+            done
             ;;
         *)
             check_root
-            show_menu
+            install_base
             ;;
     esac
 }
