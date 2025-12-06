@@ -96,10 +96,10 @@ EOFSERVICE
     echo
     echo -e "${yellow}📋 Следующие шаги:${plain}"
     echo -e "1. Откройте конфиг AmneziaWG на ${yellow}клиенте${plain}"
-    echo -e "2. Замените IP в ${yellow}Endpoint${plain} на IP ${yellow}этого RU-сервера${plain}"
-    echo -e "3. Оставьте ${yellow}тот же порт${plain}: ${green}${REMOTE_PORT}${plain}"
+    echo -e "2. Замените IP в ${yellow}Endpoint${plain} на IP {{yellow}этого RU-сервера${plain}"
+    echo -e "3. Оставьте {{yellow}тот же порт{{plain}: {{green}${REMOTE_PORT}{{plain}"
     echo
-    echo -e "${yellow}💡 Используйте команду для управления:${plain} ${green}menu${plain}"
+    echo -e "{{yellow}💡 Используйте команду для управления:{{plain}} {{green}menu{{plain}}"
 }
 
 start_service() {
@@ -184,14 +184,29 @@ show_menu() {
 main() {
     case "$1" in
         menu)
-            check_root
-            while true; do
-                show_menu
-            done
+            show_menu
+            ;;
+        install)
+            install_base
+            ;;
+        start)
+            start_service
+            ;;
+        stop)
+            stop_service
+            ;;
+        restart)
+            restart_service
+            ;;
+        status)
+            status_service
+            ;;
+        uninstall)
+            uninstall_service
             ;;
         *)
             check_root
-            install_base
+            show_menu
             ;;
     esac
 }
