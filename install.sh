@@ -1,12 +1,8 @@
 #!/usr/bin/env bash
-# AmneziaWG UDP forwarder via socat
-# Installer & management script
-# Repository: github.com/uristdobra/AmneziaWG-socat-forwarder
 
 SERVICE_NAME="wg-forward"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 SCRIPT_DIR="/opt/amneziawg-forwarder"
-SCRIPT_PATH="${SCRIPT_DIR}/install.sh"
 
 red='\033[0;31m'
 green='\033[0;32m'
@@ -16,41 +12,14 @@ plain='\033[0m'
 
 check_root() {
     if [[ $EUID -ne 0 ]]; then
-        # Если не root, перезапустить с sudo
-        exec sudo "$0" "$@"
+        echo -e "${red}❌ Требуется запуск от root.${plain}"
+        exit 1
     fi
 }
 
-press_enter() {
-    read -rp "Нажмите Enter для продолжения..." _
-}
-
-install_self() {
-    echo -e "${yellow}⚙️  Установка глобальной команды 'menu'...${plain}"
-    mkdir -p "${SCRIPT_DIR}"
-    cp "$0" "${SCRIPT_PATH}"
-    chmod +x "${SCRIPT_PATH}"
-
-    cat > "/usr/local/bin/menu" <<'EOF'
-#!/usr/bin/env bash
-if [[ $EUID -ne 0 ]]; then
-    exec sudo /opt/amneziawg-forwarder/install.sh menu
-fi
-exec /opt/amneziawg-forwarder/install.sh menu
-EOF
-    chmod +x "/usr/local/bin/menu"
-
-    echo -e "${green}✅ Глобальная команда 'menu' установлена!${plain}"
-    echo -e "Используйте: ${yellow}menu${plain}"
-}
-
-uninstall_self() {
-    echo -e "${yellow}Удаление глобальной команды 'menu'...${plain}"
-    rm -f "/usr/local/bin/menu"
-    echo -e "${green}✅ Глобальная команда удалена.${plain}"
-}
-
-install_forwarder() {
+install_base() {
+    check_root
+    
     echo -e "${blue}=== Создание каскадного VPN AmneziaWG ===${plain}"
     echo
     echo -e "${yellow}📦 Шаг 1. Обновление пакетов и установка утилит...${plain}"
@@ -104,10 +73,22 @@ EOFSERVICE
         echo -e "${green}✅ Служба успешно запущена!${plain}"
     else
         echo -e "${red}⚠️  Ошибка при запуске службы. Проверьте:${plain}"
-        echo -e "${yellow}sudo systemctl status wg-forward.service${plain}"
+        echo -e "${yellow}systemctl status wg-forward.service${plain}"
         exit 1
     fi
 
+    echo
+    echo -e "${yellow}📄 Шаг 5. Установка команды 'menu'...${plain}"
+    mkdir -p "${SCRIPT_DIR}"
+    cp "$0" "${SCRIPT_DIR}/menu.sh"
+    chmod +x "${SCRIPT_DIR}/menu.sh"
+
+    if [[ ! -f "/usr/local/bin/menu" ]]; then
+        ln -s "${SCRIPT_DIR}/menu.sh" /usr/local/bin/menu
+        chmod +x /usr/local/bin/menu
+    fi
+
+    echo -e "${green}✅ Команда 'menu' установлена!${plain}"
     echo
     echo -e "${blue}╔══════════════════════════════════════════════════╗${plain}"
     echo -e "${blue}║${plain}  ${green}✅ VPN-форвардер успешно установлен!${plain}  ${blue}║${plain}"
@@ -121,7 +102,42 @@ EOFSERVICE
     echo -e "${yellow}💡 Используйте команду для управления:${plain} ${green}menu${plain}"
 }
 
-uninstall_forwarder() {
+start_service() {
+    check_root
+    echo -e "${blue}=== Запуск службы ${SERVICE_NAME} ===${plain}"
+    systemctl start "${SERVICE_NAME}.service"
+    if systemctl is-active --quiet "${SERVICE_NAME}.service"; then
+        echo -e "${green}✅ Служба запущена.${plain}"
+    else
+        echo -e "${red}❌ Ошибка при запуске.${plain}"
+    fi
+}
+
+stop_service() {
+    check_root
+    echo -e "${blue}=== Остановка службы ${SERVICE_NAME} ===${plain}"
+    systemctl stop "${SERVICE_NAME}.service"
+    echo -e "${green}✅ Служба остановлена.${plain}"
+}
+
+restart_service() {
+    check_root
+    echo -e "${blue}=== Перезапуск службы ${SERVICE_NAME} ===${plain}"
+    systemctl restart "${SERVICE_NAME}.service"
+    if systemctl is-active --quiet "${SERVICE_NAME}.service"; then
+        echo -e "${green}✅ Служба перезапущена.${plain}"
+    else
+        echo -e "${red}❌ Ошибка при перезапуске.${plain}"
+    fi
+}
+
+status_service() {
+    echo -e "${blue}=== Статус службы ${SERVICE_NAME} ===${plain}"
+    systemctl status "${SERVICE_NAME}.service" --no-pager -l
+}
+
+uninstall_service() {
+    check_root
     echo -e "${blue}=== Удаление VPN-форвардера ===${plain}"
     echo -e "${yellow}⏹️  Остановка службы...${plain}"
     systemctl stop "${SERVICE_NAME}.service" 2>/dev/null || true
@@ -132,37 +148,6 @@ uninstall_forwarder() {
     systemctl daemon-reload
 
     echo -e "${green}✅ VPN-форвардер полностью удалён.${plain}"
-}
-
-start_forwarder() {
-    echo -e "${blue}=== Запуск службы ${SERVICE_NAME} ===${plain}"
-    systemctl start "${SERVICE_NAME}.service"
-    if systemctl is-active --quiet "${SERVICE_NAME}.service"; then
-        echo -e "${green}✅ Служба запущена.${plain}"
-    else
-        echo -e "${red}❌ Ошибка при запуске.${plain}"
-    fi
-}
-
-stop_forwarder() {
-    echo -e "${blue}=== Остановка службы ${SERVICE_NAME} ===${plain}"
-    systemctl stop "${SERVICE_NAME}.service"
-    echo -e "${green}✅ Служба остановлена.${plain}"
-}
-
-restart_forwarder() {
-    echo -e "${blue}=== Перезапуск службы ${SERVICE_NAME} ===${plain}"
-    systemctl restart "${SERVICE_NAME}.service"
-    if systemctl is-active --quiet "${SERVICE_NAME}.service"; then
-        echo -e "${green}✅ Служба перезапущена.${plain}"
-    else
-        echo -e "${red}❌ Ошибка при перезапуске.${plain}"
-    fi
-}
-
-status_forwarder() {
-    echo -e "${blue}=== Статус службы ${SERVICE_NAME} ===${plain}"
-    systemctl status "${SERVICE_NAME}.service" --no-pager -l
 }
 
 show_menu() {
@@ -182,31 +167,33 @@ show_menu() {
     read -rp "Выбор (0-6): " num
 
     case "${num}" in
-        1) install_forwarder ;;
-        2) start_forwarder ;;
-        3) stop_forwarder ;;
-        4) restart_forwarder ;;
-        5) status_forwarder ;;
-        6) uninstall_forwarder ;;
+        1) install_base ;;
+        2) start_service ;;
+        3) stop_service ;;
+        4) restart_service ;;
+        5) status_service ;;
+        6) uninstall_service ;;
         0) echo -e "${green}👋 До свидания!${plain}"; exit 0 ;;
         *) echo -e "${red}❌ Неверный выбор (введите 0-6).${plain}" ;;
     esac
+    
     echo
-    press_enter
+    read -rp "Нажмите Enter для продолжения..." _
 }
 
-# Проверка прав и перезапуск с sudo если нужно
-check_root
+main() {
+    case "$1" in
+        menu)
+            check_root
+            while true; do
+                show_menu
+            done
+            ;;
+        *)
+            check_root
+            install_base
+            ;;
+    esac
+}
 
-case "${1}" in
-    "menu")
-        while true; do
-            show_menu
-        done
-        ;;
-    *)
-        # При первом запуске без аргументов - сразу установка
-        install_forwarder
-        install_self
-        ;;
-esac
+main "$@"
