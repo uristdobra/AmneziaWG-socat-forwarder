@@ -38,14 +38,12 @@ EOF
     chmod +x "/usr/local/bin/menu"
 
     echo -e "${green}✅ Глобальная команда 'menu' установлена!${plain}"
-    echo "Теперь можно вызывать из любой папки: ${yellow}menu${plain}"
+    echo -e "Теперь можно вызывать из любой папки: ${yellow}menu${plain}"
 }
 
 uninstall_self() {
     echo -e "${yellow}Удаление глобальной команды 'menu'...${plain}"
     rm -f "/usr/local/bin/menu"
-    rm -rf "${SCRIPT_DIR}"
-    systemctl daemon-reload 2>/dev/null || true
     echo -e "${green}✅ Глобальная команда удалена.${plain}"
 }
 
@@ -103,19 +101,19 @@ EOFSERVICE
         echo -e "${green}✅ Служба успешно запущена!${plain}"
     else
         echo -e "${red}⚠️  Ошибка при запуске службы. Проверьте:${plain}"
-        echo -e "  ${yellow}sudo systemctl status wg-forward.service${plain}"
+        echo -e "${yellow}sudo systemctl status wg-forward.service${plain}"
         exit 1
     fi
 
     echo
-    echo -e "${blue}╔════════════════════════════════════════════════════╗${plain}"
-    echo -e "${blue}║${plain} ${green}✅ VPN-форвардер успешно установлен!${plain} ${blue}║${plain}"
-    echo -e "${blue}╚════════════════════════════════════════════════════╝${plain}"
+    echo -e "${blue}╔══════════════════════════════════════════════════╗${plain}"
+    echo -e "${blue}║${plain}  ${green}✅ VPN-форвардер успешно установлен!${plain}  ${blue}║${plain}"
+    echo -e "${blue}╚══════════════════════════════════════════════════╝${plain}"
     echo
     echo -e "${yellow}📋 Следующие шаги:${plain}"
-    echo "1. Откройте конфиг AmneziaWG на ${yellow}клиенте${plain}"
-    echo "2. Замените IP в ${yellow}Endpoint${plain} на IP ${yellow}этого RU-сервера${plain}"
-    echo "3. Оставьте ${yellow}тот же порт${plain}: ${green}${REMOTE_PORT}${plain}"
+    echo -e "1. Откройте конфиг AmneziaWG на ${yellow}клиенте${plain}"
+    echo -e "2. Замените IP в ${yellow}Endpoint${plain} на IP ${yellow}этого RU-сервера${plain}"
+    echo -e "3. Оставьте ${yellow}тот же порт${plain}: ${green}${REMOTE_PORT}${plain}"
     echo
     echo -e "${yellow}💡 Используйте команду для управления:${plain} ${green}menu${plain}"
 }
@@ -166,19 +164,19 @@ status_forwarder() {
 
 show_menu() {
     clear
-    echo -e "${blue}╔════════════════ AmneziaWG socat FORWARDER ════════════════╗${plain}"
-    echo -e "${blue}║${plain}                                                            ${blue}║${plain}"
-    echo -e "${blue}║${plain} ${green}1.${plain} 🔧 Установить/переустановить форвардер${blue}              ║${plain}"
-    echo -e "${blue}║${plain} ${green}2.${plain} ▶️  Запустить службу${blue}                          ║${plain}"
-    echo -e "${blue}║${plain} ${green}3.${plain} ⏹️  Остановить службу${blue}                         ║${plain}"
-    echo -e "${blue}║${plain} ${green}4.${plain} 🔄 Перезапустить службу${blue}                      ║${plain}"
-    echo -e "${blue}║${plain} ${green}5.${plain} 📊 Показать статус${blue}                           ║${plain}"
-    echo -e "${blue}║${plain} ${green}6.${plain} 🗑️  Удалить службу${blue}                           ║${plain}"
-    echo -e "${blue}║${plain} ${yellow}7.${plain} ⚙️  Установить команду 'menu'${blue}                ║${plain}"
-    echo -e "${blue}║${plain} ${yellow}8.${plain} ❌ Удалить команду 'menu'${blue}                   ║${plain}"
-    echo -e "${blue}║${plain} ${green}0.${plain} 👋 Выход${blue}                                    ║${plain}"
-    echo -e "${blue}║${plain}                                                            ${blue}║${plain}"
-    echo -e "${blue}╚════════════════════════════════════════════════════════════╝${plain}"
+    echo -e "${blue}╔════════════════════ AmneziaWG socat FORWARDER ════════════════════╗${plain}"
+    echo -e "${blue}║${plain}                                                                  ${blue}║${plain}"
+    echo -e "${blue}║${plain}  ${green}1.${plain} 🔧 Установить/переустановить форвардер${blue}                  ║${plain}"
+    echo -e "${blue}║${plain}  ${green}2.${plain} ▶️  Запустить службу${blue}                                   ║${plain}"
+    echo -e "${blue}║${plain}  ${green}3.${plain} ⏹️  Остановить службу${blue}                                  ║${plain}"
+    echo -e "${blue}║${plain}  ${green}4.${plain} 🔄 Перезапустить службу${blue}                               ║${plain}"
+    echo -e "${blue}║${plain}  ${green}5.${plain} 📊 Показать статус${blue}                                    ║${plain}"
+    echo -e "${blue}║${plain}  ${green}6.${plain} 🗑️  Удалить службу${blue}                                    ║${plain}"
+    echo -e "${blue}║${plain}  ${yellow}7.${plain} ⚙️  Установить команду 'menu'${blue}                           ║${plain}"
+    echo -e "${blue}║${plain}  ${yellow}8.${plain} ❌ Удалить команду 'menu'${blue}                              ║${plain}"
+    echo -e "${blue}║${plain}  ${green}0.${plain} 👋 Выход${blue}                                             ║${plain}"
+    echo -e "${blue}║${plain}                                                                  ${blue}║${plain}"
+    echo -e "${blue}╚════════════════════════════════════════════════════════════════════╝${plain}"
     echo
     read -rp "Выбор: " num
 
@@ -208,6 +206,7 @@ case "${1}" in
     "установить")
         check_root
         install_forwarder
+        install_self
         ;;
     "стоп")
         check_root
@@ -231,16 +230,15 @@ case "${1}" in
     *)
         echo -e "${blue}🎯 AmneziaWG UDP Forwarder${plain}"
         echo "Использование:"
-        echo "  ${yellow}sudo bash install.sh установить${plain}  — установка форвардера"
-        echo "  ${yellow}sudo bash install.sh menu${plain}        — меню управления"
-        echo "  ${yellow}sudo bash install.sh старт${plain}       — запуск службы"
-        echo "  ${yellow}sudo bash install.sh стоп${plain}        — остановка службы"
-        echo "  ${yellow}sudo bash install.sh рестарт${plain}     — перезапуск службы"
-        echo "  ${yellow}sudo bash install.sh статус${plain}      — статус службы"
-        echo "  ${yellow}sudo bash install.sh удалить${plain}     — удаление форвардера"
+        echo -e "  ${yellow}sudo bash install.sh установить${plain}  — установка форвардера + команда menu"
+        echo -e "  ${yellow}sudo bash install.sh menu${plain}        — меню управления"
+        echo -e "  ${yellow}sudo bash install.sh старт${plain}       — запуск службы"
+        echo -e "  ${yellow}sudo bash install.sh стоп${plain}        — остановка службы"
+        echo -e "  ${yellow}sudo bash install.sh рестарт${plain}     — перезапуск службы"
+        echo -e "  ${yellow}sudo bash install.sh статус${plain}      — статус службы"
+        echo -e "  ${yellow}sudo bash install.sh удалить${plain}     — удаление форвардера"
         echo
-        echo "После установки глобальной команды используйте:"
-        echo "  ${green}menu${plain}  — открыть меню из любой папки"
+        echo -e "После установки используйте: ${green}menu${plain}"
         exit 1
         ;;
 esac
