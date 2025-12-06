@@ -84,11 +84,8 @@ EOFSERVICE
     chmod +x "${SCRIPT_DIR}/install.sh"
 
     cat > "/usr/local/bin/menu" <<'EOFMENU'
-#!/usr/bin/env bash
-if [[ $EUID -ne 0 ]]; then
-    exec sudo /opt/amneziawg-forwarder/install.sh menu
-fi
-exec /opt/amneziawg-forwarder/install.sh menu
+#!/bin/bash
+sudo /opt/amneziawg-forwarder/install.sh menu
 EOFMENU
     chmod +x "/usr/local/bin/menu"
 
