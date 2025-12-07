@@ -3,6 +3,7 @@
 SERVICE_NAME="wg-forward"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 SCRIPT_DIR="/opt/amneziawg-forwarder"
+GITHUB_URL="https://raw.githubusercontent.com/uristdobra/AmneziaWG-socat-forwarder/main/install.sh"
 
 red='\033[0;31m'
 green='\033[0;32m'
@@ -81,13 +82,13 @@ EOFSERVICE
     echo -e "${yellow}📄 Шаг 5. Установка скрипта и команды 'menu'...${plain}"
     mkdir -p "${SCRIPT_DIR}"
     
-    # Копируем скрипт безопасно через readlink
-    SCRIPT_PATH="$(readlink -f "$0")"
-    if cp "$SCRIPT_PATH" "${SCRIPT_DIR}/install.sh"; then
+    # Скачиваем оригинальный скрипт с GitHub
+    echo -e "${yellow}Скачиваем скрипт с GitHub...${plain}"
+    if curl -fsSL -o "${SCRIPT_DIR}/install.sh" "${GITHUB_URL}"; then
         chmod +x "${SCRIPT_DIR}/install.sh"
-        echo -e "${green}✅ Скрипт скопирован в ${SCRIPT_DIR}/install.sh${plain}"
+        echo -e "${green}✅ Скрипт скачан успешно${plain}"
     else
-        echo -e "${red}❌ Ошибка при копировании скрипта.${plain}"
+        echo -e "${red}❌ Не удалось скачать скрипт с GitHub.${plain}"
         exit 1
     fi
 
