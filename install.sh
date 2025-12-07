@@ -68,7 +68,7 @@ EOFSERVICE
     echo -e "${yellow}🚀 Шаг 4. Активация и запуск службы...${plain}"
     systemctl daemon-reload
     systemctl enable "${SERVICE_NAME}.service"
-    systemctl restart "${SERVICE_NAME}.service"
+    systemctl start "${SERVICE_NAME}.service"
 
     if systemctl is-active --quiet "${SERVICE_NAME}.service"; then
         echo -e "${green}✅ Служба успешно запущена!${plain}"
