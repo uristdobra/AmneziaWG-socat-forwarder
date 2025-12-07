@@ -3,7 +3,7 @@
 SERVICE_NAME="wg-forward"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 SCRIPT_DIR="/opt/amneziawg-forwarder"
-GITHUB_URL="https://raw.githubusercontent.com/uristdobra/AmneziaWG-socat-forwarder/main/install.sh"
+GITHUB_RAW="https://raw.githubusercontent.com/uristdobra/AmneziaWG-socat-forwarder/main/install.sh"
 
 red='\033[0;31m'
 green='\033[0;32m'
@@ -20,7 +20,7 @@ check_root() {
 
 install_base() {
     check_root
-    
+
     echo -e "${blue}=== Создание каскадного VPN AmneziaWG ===${plain}"
     echo
     echo -e "${yellow}📦 Шаг 1. Обновление пакетов и установка утилит...${plain}"
@@ -74,25 +74,32 @@ EOFSERVICE
         echo -e "${green}✅ Служба успешно запущена!${plain}"
     else
         echo -e "${red}⚠️  Ошибка при запуске службы. Проверьте:${plain}"
-        echo -e "${yellow}systemctl status wg-forward.service${plain}"
+        echo -e "${yellow}systemctl status ${SERVICE_NAME}.service${plain}"
         exit 1
     fi
 
     echo
-    echo -e "${yellow}📄 Шаг 5. Установка скрипта и команды 'menu'...${plain}"
+    echo -e "${yellow}📄 Шаг 5. Установка команды 'menu'...${plain}"
     mkdir -p "${SCRIPT_DIR}"
-    
-    # Скачиваем оригинальный скрипт с GitHub
-    echo -e "${yellow}Скачиваем скрипт с GitHub...${plain}"
-    if curl -fsSL -o "${SCRIPT_DIR}/install.sh" "${GITHUB_URL}"; then
-        chmod +x "${SCRIPT_DIR}/install.sh"
-        echo -e "${green}✅ Скрипт скачан успешно${plain}"
+
+    # Попытка корректно получить путь до текущего файла
+    SRC="${BASH_SOURCE[0]}"
+
+    if [[ -f "$SRC" ]]; then
+        cp -- "$SRC" "${SCRIPT_DIR}/install.sh"
     else
-        echo -e "${red}❌ Не удалось скачать скрипт с GitHub.${plain}"
-        exit 1
+        # Если запущено как curl | bash — скачиваем оригинал с GitHub
+        echo -e "${yellow}⚠️  Локальный файл не определён, скачиваю оригинал с GitHub...${plain}"
+        mkdir -p "${SCRIPT_DIR}"
+        if ! curl -fsSL "${GITHUB_RAW}" -o "${SCRIPT_DIR}/install.sh"; then
+            echo -e "${red}❌ Не удалось скачать install.sh с GitHub. Установка не завершена.${plain}"
+            exit 1
+        fi
     fi
 
-    # Создаём обёртку для команды menu
+    chmod +x "${SCRIPT_DIR}/install.sh"
+
+    # Устанавливаем простой wrapper без sudo (чтобы не менять контекст запуска)
     cat > "/usr/local/bin/menu" <<'EOFMENU'
 #!/bin/bash
 # wrapper for AmneziaWG forwarder menu
@@ -148,9 +155,9 @@ status_service() {
     systemctl status "${SERVICE_NAME}.service" --no-pager -l
 }
 
-remove_service_only() {
+uninstall_service() {
     check_root
-    echo -e "${blue}=== Удаление только службы ===${plain}"
+    echo -e "${blue}=== Удаление VPN-форвардера ===${plain}"
     echo -e "${yellow}⏹️  Остановка службы...${plain}"
     systemctl stop "${SERVICE_NAME}.service" 2>/dev/null || true
     systemctl disable "${SERVICE_NAME}.service" 2>/dev/null || true
@@ -159,26 +166,7 @@ remove_service_only() {
     rm -f "${SERVICE_FILE}"
     systemctl daemon-reload
 
-    echo -e "${green}✅ Служба удалена. Меню и файлы остаются.${plain}"
-}
-
-full_cleanup() {
-    check_root
-    echo -e "${blue}=== ПОЛНАЯ ОЧИСТКА (служба + меню + файлы) ===${plain}"
-    
-    echo -e "${yellow}⏹️  Остановка службы...${plain}"
-    systemctl stop "${SERVICE_NAME}.service" 2>/dev/null || true
-    systemctl disable "${SERVICE_NAME}.service" 2>/dev/null || true
-
-    echo -e "${yellow}🗑️  Удаление файлов...${plain}"
-    rm -f "${SERVICE_FILE}"
-    rm -rf "${SCRIPT_DIR}"
-    rm -f "/usr/local/bin/menu"
-    
-    systemctl daemon-reload 2>/dev/null || true
-
-    echo -e "${green}✅ Полная очистка завершена!${plain}"
-    echo -e "${yellow}ℹ️  Текущий скрипт install.sh можно удалить вручную: rm -f ./install.sh${plain}"
+    echo -e "${green}✅ VPN-форвардер полностью удалён.${plain}"
 }
 
 show_menu() {
@@ -190,13 +178,12 @@ show_menu() {
     echo -e "${blue}║${plain}  ${green}3${plain} ⏹️  Остановить службу${blue}                                   ║${plain}"
     echo -e "${blue}║${plain}  ${green}4${plain} 🔄 Перезапустить службу${blue}                                ║${plain}"
     echo -e "${blue}║${plain}  ${green}5${plain} 📊 Показать статус${blue}                                     ║${plain}"
-    echo -e "${blue}║${plain}  ${green}6${plain} 🗑️  Удалить только службу${blue}                             ║${plain}"
-    echo -e "${blue}║${plain}  ${green}7${plain} 💥 Полная очистка (служба + меню + файлы)${blue}             ║${plain}"
+    echo -e "${blue}║${plain}  ${green}6${plain} 🗑️  Удалить службу${blue}                                     ║${plain}"
     echo -e "${blue}║${plain}  ${green}0${plain} 👋 Выход${blue}                                              ║${plain}"
     echo -e "${blue}║${plain}                                                                  ${blue}║${plain}"
     echo -e "${blue}╚════════════════════════════════════════════════════════════════════╝${plain}"
     echo
-    read -rp "Выбор (0-7): " num
+    read -rp "Выбор (0-6): " num
 
     case "${num}" in
         1) install_base ;;
@@ -204,12 +191,11 @@ show_menu() {
         3) stop_service ;;
         4) restart_service ;;
         5) status_service ;;
-        6) remove_service_only ;;
-        7) full_cleanup ;;
+        6) uninstall_service ;;
         0) echo -e "${green}👋 До свидания!${plain}"; exit 0 ;;
-        *) echo -e "${red}❌ Неверный выбор (введите 0-7).${plain}" ;;
+        *) echo -e "${red}❌ Неверный выбор (введите 0-6).${plain}" ;;
     esac
-    
+
     echo
     read -rp "Нажмите Enter для продолжения..." _
 }
@@ -224,12 +210,9 @@ main() {
             ;;
         *)
             check_root
-            show_menu
+            install_base
             ;;
     esac
 }
 
-# КРИТИЧНО: Запускаем только если скрипт вызван напрямую, не sourced
-if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
-    main "$@"
-fi
+main "$@"
